@@ -28,19 +28,29 @@ func main() {
 		for received_signal := range signals {
 			switch received_signal {
 			case syscall.SIGTERM:
+				exit_with_signal(received_signal, done)
+				break
 			case syscall.SIGINT:
-				fmt.Printf("received %v exiting\n", received_signal)
-				done <- true
+				exit_with_signal(received_signal, done)
 				break
 			case syscall.SIGHUP:
-				fmt.Printf("received %v running command %v args: %v \n", received_signal, program, programArgs)
-				cmd := exec.Command(program, programArgs...)
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				cmd.Run()
+				runCommand(received_signal, program, programArgs)
 				break
 			}
 		}
 	}()
 	<-done
+}
+
+func runCommand(received_signal os.Signal, program string, programArgs []string) {
+	fmt.Printf("received %v running command %v args: %v \n", received_signal, program, programArgs)
+	cmd := exec.Command(program, programArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+}
+
+func exit_with_signal(received_signal os.Signal, done chan bool) {
+	fmt.Printf("received %v exiting\n", received_signal)
+	done <- true
 }
